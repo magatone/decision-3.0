@@ -1,0 +1,13 @@
+# Same versions as the verified setup (2026-10-15). torch comes from the CUDA 12.8 index (RTX 50 series needs cu128+).
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
+transformers==5.17.0
+accelerate==1.15.0
+safetensors==0.8.0
+huggingface_hub==1.33.0
+einops==0.8.2
+pillow==12.3.0
+opencv-python-headless==5.0.0.93
+# Fast kernels need Triton, which has no official Windows build -> Linux/Docker only.
+flash-linear-attention==0.5.2 ; sys_platform == "linux"

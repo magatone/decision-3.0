@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Secrets (tunnel token, GUI password). Template is .env.example
+.env
+
+# Downloaded test images: third-party dataset, includes sensitive ratings. Re-create with fetch_testset.py
+data/
+
+# Internal working notes (PC paths, network info, internal discussion)
+CLAUDE.md

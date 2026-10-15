@@ -1,0 +1,32 @@
+# docker compose up -d --build                    ->  this PC + office LAN: http://<this PC IP>:7860
+# docker compose --profile tunnel up -d --build   ->  also Cloudflare tunnel (needs TUNNEL_TOKEN in .env)
+services:
+  gui:
+    build: .
+    image: d3-gui
+    ports:
+      - "7860:7860"   # all interfaces = office LAN can reach it (Windows firewall must allow 7860)
+    volumes:
+      # reuse the 8.5GB model already downloaded on Windows (read-only, no re-download)
+      - ${USERPROFILE}/.cache/huggingface/hub:/root/.cache/huggingface/hub:ro
+    environment:
+      - GUI_AUTH=${GUI_AUTH:-}   # user:pass -> browser login prompt. Empty = no login
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  tunnel:
+    # Cloudflare dashboard > Zero Trust > Networks > Tunnels: create tunnel, copy token into .env,
+    # and set the public hostname's service to http://gui:7860 (container-to-container, not localhost).
+    image: cloudflare/cloudflared:2025.9.1
+    profiles: [tunnel]
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}   # from .env; cloudflared exits with an error if empty
+    depends_on: [gui]
+    restart: unless-stopped

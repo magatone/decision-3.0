@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>d3 테스트</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg:#fafafa; --fg:#18181b; --muted:#71717a; --card:#fff; --line:#e4e4e7; --accent:#2563eb; --bar:#dbeafe; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#09090b; --fg:#fafafa; --muted:#a1a1aa; --card:#18181b; --line:#27272a; --accent:#60a5fa; --bar:#1e3a5f; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, "Malgun Gothic", sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px; display:grid; gap:16px; grid-template-columns:1fr 1fr; }
+  @media (max-width:800px) { main { grid-template-columns:1fr; } }
+  h1 { grid-column:1/-1; margin:0; font-size:18px; }
+  h1 small { color:var(--muted); font-weight:400; margin-left:8px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  label { font-weight:600; font-size:13px; }
+  textarea, select { width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:8px; font:13px/1.45 ui-monospace, Consolas, monospace; }
+  textarea { resize:vertical; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:8px 18px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  #run { padding:10px 22px; font-size:15px; }
+  #run kbd { font:12px ui-monospace, Consolas, monospace; background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); border-radius:4px; padding:1px 5px; }
+  .hint { color:var(--muted); font-size:12px; }
+  .slots { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .slot { border:1px dashed var(--line); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted); min-width:0; }
+  .slot b { color:var(--accent); font-size:16px; }
+  .slot input { font-size:12px; max-width:100%; }
+  .slot img, .slot video { max-width:100%; max-height:120px; border-radius:4px; }
+  .slot .clear { background:transparent; color:var(--muted); border:1px solid var(--line); padding:2px 8px; font-weight:400; align-self:flex-start; }
+  .compare { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .compare:empty { display:none; }
+  .compare figure { margin:0; text-align:center; font-weight:700; color:var(--accent); }
+  .compare img, .compare video { width:100%; height:200px; object-fit:contain; background:var(--bg); border:1px solid var(--line); border-radius:6px; }
+  .q { border-top:1px solid var(--line); padding-top:10px; }
+  .q:first-child { border-top:0; padding-top:0; }
+  .q h3 { margin:0 0 6px; font-size:14px; }
+  .q h3 span { color:var(--muted); font-weight:400; font-size:12px; margin-left:6px; }
+  .opt { display:grid; grid-template-columns:110px 1fr 56px; gap:8px; align-items:center; font-size:13px; margin:3px 0; }
+  .track { background:var(--line); border-radius:3px; height:14px; overflow:hidden; }
+  .fill { background:var(--accent); height:100%; }
+  .opt.win { font-weight:700; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .time-box { background:var(--bar); border-radius:8px; padding:6px 14px; }
+  #time { font-size:28px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .err { color:#dc2626; white-space:pre-wrap; }
+  details pre { font-size:12px; overflow:auto; max-height:300px; }
+  details.mode { grid-column:1/-1; }
+  details.mode > summary { cursor:pointer; font-size:16px; font-weight:700; padding:8px 4px; user-select:none; }
+  details.mode > summary .hint { font-weight:400; margin-left:6px; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:800px) { .pair { grid-template-columns:1fr; } }
+  .grid figure { cursor:zoom-in; }
+  #lb { border:0; padding:56px 72px 40px; background:transparent; max-width:100vw; max-height:100vh; width:100vw; height:100vh; color:#fff; }
+  #lb[open] { display:flex; align-items:center; justify-content:center; }
+  #lb::backdrop { background:rgba(0,0,0,.88); }
+  #lbimg { max-width:100%; max-height:100%; object-fit:contain; border-radius:4px; }
+  .lb-top { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; gap:12px; align-items:baseline; background:rgba(0,0,0,.6); padding:6px 18px; border-radius:999px; }
+  .lb-top b { font-size:22px; }
+  .lb-top b.yes { color:#60a5fa; } .lb-top b.no { color:#d4d4d8; }
+  #lbpct { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .lb-name { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); font-size:13px; color:#d4d4d8; white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis; }
+  .lb-nav { position:fixed; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.12); font-size:36px; line-height:1; padding:10px 16px; border-radius:8px; }
+  .lb-nav:disabled { opacity:.15; cursor:default; }
+  .lb-close { position:fixed; top:12px; right:12px; background:rgba(255,255,255,.12); font-size:18px; padding:6px 12px; }
+  #bdrop.over { outline:3px dashed var(--accent); outline-offset:-6px; }
+  input[type=text] { background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:8px; font:14px system-ui, "Malgun Gothic", sans-serif; }
+  .pick { border:1px solid var(--line); border-radius:6px; padding:7px 12px; cursor:pointer; font-weight:400; }
+  .ghost { background:transparent; color:var(--fg); border:1px solid var(--line); }
+  .bins { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .bin { border:2px solid var(--accent); border-radius:10px; padding:10px; min-height:160px; }
+  .bin.no { border-color:var(--muted); }
+  .bin h3 { margin:0 0 8px; font-size:16px; }
+  .bin h3 span { color:var(--muted); font-weight:400; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:6px; }
+  .grid figure { margin:0; position:relative; }
+  .grid img { width:100%; height:96px; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; }
+  .grid figcaption { position:absolute; right:4px; bottom:4px; background:rgba(0,0,0,.7); color:#fff; font-size:11px; padding:1px 5px; border-radius:4px; font-variant-numeric:tabular-nums; }
+  .grid figure.err img { opacity:.3; }
+</style>
+</head>
+<body>
+<main>
+  <h1><small id="model"></small></h1>
+
+  <details class="mode" id="mode-single" open>
+  <summary>단일 테스트 <span class="hint">질문 JSON · 이미지 A/B 비교</span></summary>
+  <div class="pair">
+  <section>
+    <div class="row">
+      <label for="preset">예제</label>
+      <select id="preset" style="width:auto"></select>
+    </div>
+    <label for="state">입력 (state)</label>
+    <textarea id="state" rows="4"></textarea>
+    <label>이미지·영상 (선택, 비교하려면 A와 B 둘 다)</label>
+    <div class="slots">
+      <div class="slot" data-slot="A"><b>A</b> 첫 번째<input type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime,video/x-matroska,.webp,.mkv,.mov"><div class="preview"></div><button type="button" class="clear">비우기</button></div>
+      <div class="slot" data-slot="B"><b>B</b> 두 번째<input type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime,video/x-matroska,.webp,.mkv,.mov"><div class="preview"></div><button type="button" class="clear">비우기</button></div>
+    </div>
+    <label for="questions">질문 (JSON)</label>
+    <textarea id="questions" rows="16" spellcheck="false"></textarea>
+    <div class="hint">type: <b>choice</b> 보기 중 하나 · <b>noul</b> 예/아니오 확률 · <b>score</b> 순서형 점수(criteria는 배열)</div>
+    <div class="row"><button id="run">실행 <kbd>Ctrl</kbd>+<kbd>Enter</kbd></button></div>
+  </section>
+
+  <section>
+    <div class="row" style="justify-content:space-between">
+      <label>결과</label>
+      <div class="time-box"><span class="hint">처리 시간</span> <span id="time">-</span></div>
+    </div>
+    <div class="compare" id="compare"></div>
+    <div id="out" class="hint">실행하면 여기에 확률이 나와요.</div>
+    <details><summary class="hint">원본 JSON</summary><pre id="raw"></pre></details>
+  </section>
+  </div>
+  </details>
+
+  <details class="mode" id="mode-batch" open>
+  <summary>일괄 판단 (Yes / No) <span class="hint">여러 장을 하나씩 순서대로 판단</span></summary>
+  <section id="bdrop">
+    <div class="row">
+      <input id="bq" type="text" value="사람이 등장하나요?" placeholder="예/아니오 질문" style="flex:1; min-width:240px">
+      <label class="pick">파일 여러 개<input id="bfiles" type="file" multiple accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" hidden></label>
+      <label class="pick">폴더<input id="bdir" type="file" webkitdirectory hidden></label>
+      <button id="bstart" disabled>시작</button>
+      <button id="bstop" class="ghost" disabled>중지</button>
+    </div>
+    <div class="row">
+      <span class="hint" id="bpicked">선택된 이미지 없음 · 폴더나 이미지를 이 칸에 끌어다 놓아도 돼요</span>
+      <span style="flex:1"></span>
+      <span class="hint">Yes 기준</span>
+      <input id="bth" type="range" min="0.05" max="0.95" step="0.05" value="0.5">
+      <b id="bthv" class="num" style="width:40px">50%</b>
+    </div>
+    <div class="row hint" id="bstat"></div>
+    <div class="bins">
+      <div class="bin"><h3>Yes <span id="ycount">0</span></h3><div class="grid" id="ybin"></div></div>
+      <div class="bin no"><h3>No <span id="ncount">0</span></h3><div class="grid" id="nbin"></div></div>
+    </div>
+  </section>
+  </details>
+</main>
+<dialog id="lb">
+  <div class="lb-top"><b id="lbverdict"></b><span id="lbpct"></span></div>
+  <button id="lbclose" class="lb-close" aria-label="닫기">✕</button>
+  <button id="lbprev" class="lb-nav" style="left:12px" aria-label="이전">‹</button>
+  <img id="lbimg" alt="">
+  <button id="lbnext" class="lb-nav" style="right:12px" aria-label="다음">›</button>
+  <div class="lb-name" id="lbname"></div>
+</dialog>
+<script>
+const PRESETS = {
+  "고객문의 분류 (한국어)": {
+    state: "결제했는데 회차가 안 열려요. 코인은 빠져나갔고 지금 바로 보고 싶어요.",
+    questions: {
+      route: { type: "choice", instructions: "어느 팀이 처리해야 하나요?",
+               criteria: { payment: "결제·코인·환불", content: "작품·회차 오류", account: "로그인·계정" } },
+      charged: { type: "noul", instructions: "코인이 차감되었나요?" },
+      urgency: { type: "score", instructions: "얼마나 급한가요?", criteria: ["여유", "곧", "지금 당장"] }
+    }
+  },
+  "README 텍스트 예제": {
+    state: "The order arrived damaged yesterday. The customer has a receipt and asks for a replacement today.",
+    questions: {
+      route: { type: "choice", instructions: "Which team should handle this request?",
+               criteria: { returns: "Refunds, replacements and damaged deliveries", billing: "Payments, invoices and charges", technical: "Product setup and faults" } },
+      receipt: { type: "noul", instructions: "Does the customer have a receipt?" },
+      urgency: { type: "score", instructions: "How urgent is this request?", criteria: ["Routine", "Soon", "Today"] }
+    }
+  },
+  "이미지 1장 판단 (A에 첨부)": {
+    state: "",
+    questions: {
+      kind: { type: "choice", instructions: "이미지의 종류는?", criteria: { photo: "실사 사진", illustration: "일러스트·만화", document: "문서·영수증·스크린샷" } },
+      people: { type: "noul", instructions: "사람이 등장하나요?" }
+    }
+  },
+  "이미지 A vs B 비교 (A·B 둘 다 첨부)": {
+    state: "첫 번째 이미지는 A, 두 번째 이미지는 B입니다.",
+    questions: {
+      same_image: { type: "noul", instructions: "A와 B는 같은 이미지인가요?" },
+      same_character: { type: "noul", instructions: "A와 B에 같은 캐릭터가 등장하나요?" },
+      same_style: { type: "noul", instructions: "A와 B의 그림체(화풍)가 같나요?" },
+      sharper: { type: "choice", instructions: "어느 이미지가 더 선명한가요?",
+                 criteria: { A: "첫 번째 이미지 (A)", B: "두 번째 이미지 (B)", same: "비슷함" } },
+      similarity: { type: "score", instructions: "A와 B는 얼마나 비슷한가요?", criteria: ["전혀 다름", "조금 비슷", "꽤 비슷", "거의 같음"] }
+    }
+  }
+};
+
+const $ = id => document.getElementById(id);
+const slots = { A: null, B: null };  // { url, isVideo, name }
+
+for (const name of Object.keys(PRESETS)) $("preset").add(new Option(name, name));
+function loadPreset() {
+  const p = PRESETS[$("preset").value];
+  $("state").value = p.state;
+  $("questions").value = JSON.stringify(p.questions, null, 2);
+}
+$("preset").onchange = loadPreset;
+loadPreset();
+
+// The browser's file.type comes from the OS; this PC has no registry entry for .webp, so it can be empty.
+// Fall back to the extension and stamp the right type on the data URL (the model rejects octet-stream).
+const EXT_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp",
+  mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime", mkv: "video/x-matroska" };
+const typeOf = f => f.type || EXT_TYPES[f.name.split(".").pop().toLowerCase()] || "";
+const readDataURL = f => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onload = () => ok(r.result.replace(/^data:[^;,]*/, "data:" + typeOf(f)));
+  r.onerror = no; r.readAsDataURL(f);
+});
+const mediaTag = s => s.isVideo ? `<video src="${s.url}" muted controls></video>` : `<img src="${s.url}" alt="${esc(s.name)}">`;
+for (const el of document.querySelectorAll(".slot")) {
+  const key = el.dataset.slot, input = el.querySelector("input"), preview = el.querySelector(".preview");
+  input.onchange = async () => {
+    const f = input.files[0];
+    slots[key] = f ? { url: await readDataURL(f), isVideo: typeOf(f).startsWith("video/"), name: f.name } : null;
+    preview.innerHTML = slots[key] ? mediaTag(slots[key]) : "";
+  };
+  el.querySelector(".clear").onclick = () => { input.value = ""; slots[key] = null; preview.innerHTML = ""; };
+}
+// The model always reads images first, then videos; A/B order holds within each kind.
+function media() {
+  const filled = ["A", "B"].map(k => slots[k]).filter(Boolean);
+  return { images: filled.filter(s => !s.isVideo).map(s => s.url), videos: filled.filter(s => s.isVideo).map(s => s.url) };
+}
+
+const pct = v => (v * 100).toFixed(1) + "%";
+function bar(label, p, win) {
+  return `<div class="opt${win ? " win" : ""}"><span>${label}</span><div class="track"><div class="fill" style="width:${p * 100}%"></div></div><span class="num">${pct(p)}</span></div>`;
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+
+function render(answers) {
+  return Object.entries(answers).map(([id, a]) => {
+    let body = "", meta = "";
+    if (a.error) {
+      body = `<div class="err">${esc(a.message || a.error)}</div>`;
+    } else if (a.type === "noul") {
+      body = bar("예", a.noul, a.noul >= .5) + bar("아니오", 1 - a.noul, a.noul < .5);
+    } else {
+      const probs = a.probabilities || {};
+      const top = Object.entries(probs).sort((x, y) => y[1] - x[1])[0]?.[0];
+      body = Object.entries(probs).map(([k, p]) => bar(esc(a.legend?.[k] ?? k), p, k === top)).join("");
+      meta = a.type === "score" ? `점수 ${a.score.toFixed(2)} · 확신도 ${pct(a.confidence)}` : `확신도 ${pct(a.confidence)}`;
+    }
+    return `<div class="q"><h3>${esc(id)}<span>${a.type} ${meta}</span></h3>${body}</div>`;
+  }).join("");
+}
+
+async function run() {
+  let questions;
+  try { questions = JSON.parse($("questions").value); }
+  catch (e) { $("out").innerHTML = `<div class="err">질문 JSON 형식 오류: ${esc(e.message)}</div>`; return; }
+  $("run").disabled = true; $("time").textContent = "실행 중…";
+  try {
+    const res = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: $("state").value, questions, ...media() }) });
+    const data = await res.json();
+    $("raw").textContent = JSON.stringify(data, null, 2);
+    if (!res.ok) throw new Error(data.error);
+    $("model").textContent = data.model;
+    $("time").textContent = `${(data.ms / 1000).toFixed(3)}초`;
+    $("out").innerHTML = render(data.answers);
+    // Side-by-side view of what was actually sent, only when both slots are used.
+    $("compare").innerHTML = slots.A && slots.B
+      ? ["A", "B"].map(k => `<figure>${mediaTag(slots[k])}<figcaption>${k}</figcaption></figure>`).join("") : "";
+  } catch (e) {
+    $("time").textContent = "-";
+    $("out").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  } finally { $("run").disabled = false; }
+}
+$("run").onclick = run;
+// ---- Batch Yes/No: one request per image, strictly in order (one model process handles one at a time anyway).
+let bfiles = [], bresults = [], stopFlag = false;
+function pickBatch(list) {
+  const all = [...list], skipped = {};
+  bfiles = all.filter(f => /^image\/(png|jpeg|webp)$/.test(typeOf(f)))
+    .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, "ko", { numeric: true }));
+  // Say what was dropped, so "nothing happened" is never silent (e.g. a folder of .gif/.bmp/.avif).
+  for (const f of all) if (!bfiles.includes(f)) { const ext = f.name.includes(".") ? f.name.split(".").pop().toLowerCase() : "확장자 없음"; skipped[ext] = (skipped[ext] || 0) + 1; }
+  const skip = Object.entries(skipped).map(([k, v]) => `${k} ${v}`).join(", ");
+  $("bpicked").textContent = (bfiles.length ? `${bfiles.length}장 선택됨` : `파일 ${all.length}개 중 쓸 수 있는 이미지 없음`)
+    + (skip ? ` · 제외: ${skip} (png·jpg·webp만 가능)` : "");
+  $("bstart").disabled = !bfiles.length;
+}
+// Clear the input after reading, otherwise picking the same folder again fires no change event.
+for (const id of ["bfiles", "bdir"]) $(id).onchange = e => { pickBatch(e.target.files); e.target.value = ""; };
+
+// Drag & drop of files or whole folders (recursive), as an alternative to the folder dialog.
+async function filesFromEntry(entry) {
+  if (entry.isFile) return [await new Promise((ok, no) => entry.file(ok, no))];
+  const reader = entry.createReader(), out = [];
+  for (;;) {  // readEntries returns at most ~100 entries per call
+    const batch = await new Promise((ok, no) => reader.readEntries(ok, no));
+    if (!batch.length) break;
+    for (const e of batch) out.push(...await filesFromEntry(e));
+  }
+  return out;
+}
+const drop = $("bdrop");
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", e => { if (!drop.contains(e.relatedTarget)) drop.classList.remove("over"); });
+drop.addEventListener("drop", async e => {
+  e.preventDefault(); drop.classList.remove("over");
+  const entries = [...e.dataTransfer.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  $("bpicked").textContent = "불러오는 중…";
+  pickBatch(entries.length ? (await Promise.all(entries.map(filesFromEntry))).flat() : e.dataTransfer.files);
+});
+
+// Remember which sections are open (per browser; harmless if storage is blocked).
+for (const d of document.querySelectorAll("details.mode")) {
+  try { const v = localStorage.getItem(d.id); if (v !== null) d.open = v === "1"; } catch {}
+  d.addEventListener("toggle", () => { try { localStorage.setItem(d.id, d.open ? "1" : "0"); } catch {} });
+}
+
+// Re-sort from stored probabilities, so moving the threshold never re-runs the model.
+const bins = { yes: [], no: [] };
+const isYes = r => r.p !== null && r.p >= +$("bth").value;
+function drawBins() {
+  bins.yes = bresults.filter(isYes); bins.no = bresults.filter(r => !isYes(r));
+  const fig = (r, i, bin) => `<figure class="${r.p === null ? "err" : ""}" data-bin="${bin}" data-i="${i}" title="${esc(r.name)}${r.error ? "\n" + esc(r.error) : ""}"><img src="${r.thumb}" alt="${esc(r.name)}" loading="lazy"><figcaption>${r.p === null ? "오류" : pct(r.p)}</figcaption></figure>`;
+  $("ybin").innerHTML = bins.yes.map((r, i) => fig(r, i, "yes")).join("");
+  $("nbin").innerHTML = bins.no.map((r, i) => fig(r, i, "no")).join("");
+  $("ycount").textContent = bins.yes.length; $("ncount").textContent = bins.no.length;
+  if ($("lb").open) showLightbox(lbItem);  // results keep arriving / threshold moved while viewing
+}
+
+// ---- Lightbox: full image at its own aspect ratio; arrows move within the box (Yes or No) it was opened from.
+let lbItem = null;
+function showLightbox(r) {
+  const bin = isYes(r) ? "yes" : "no", list = bins[bin], i = list.indexOf(r);
+  lbItem = r;
+  $("lbimg").src = r.thumb; $("lbimg").alt = r.name;
+  $("lbverdict").textContent = r.p === null ? "오류" : bin === "yes" ? "Yes" : "No";
+  $("lbverdict").className = bin;
+  // Big number = confidence of the box's own decision (No 99.8% rather than "yes 0.2%").
+  $("lbpct").textContent = r.p === null ? "" : pct(bin === "yes" ? r.p : 1 - r.p);
+  $("lbname").textContent = `${r.name} · ${bin === "yes" ? "Yes" : "No"} 상자 ${i + 1} / ${list.length}`
+    + (r.p === null ? ` · ${r.error}` : ` · 예 확률 ${pct(r.p)} (기준 ${Math.round($("bth").value * 100)}%)`);
+  $("lbprev").disabled = i <= 0; $("lbnext").disabled = i >= list.length - 1;
+  if (!$("lb").open) $("lb").showModal();
+}
+function stepLightbox(d) {
+  const list = bins[isYes(lbItem) ? "yes" : "no"], i = list.indexOf(lbItem) + d;
+  if (i >= 0 && i < list.length) showLightbox(list[i]);
+}
+for (const id of ["ybin", "nbin"]) $(id).onclick = e => {
+  const f = e.target.closest("figure"); if (f) showLightbox(bins[f.dataset.bin][+f.dataset.i]);
+};
+$("lbprev").onclick = () => stepLightbox(-1);
+$("lbnext").onclick = () => stepLightbox(1);
+$("lbclose").onclick = () => $("lb").close();
+$("lb").onclick = e => { if (e.target === $("lb")) $("lb").close(); };  // click on the dark backdrop
+// On document, not the dialog: clicking the image can move focus to <body>, and keys would then miss the dialog.
+document.addEventListener("keydown", e => {
+  if (!$("lb").open) return;
+  if (e.key === "ArrowLeft") { e.preventDefault(); stepLightbox(-1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); stepLightbox(1); }
+});
+$("bth").oninput = () => { $("bthv").textContent = Math.round($("bth").value * 100) + "%"; drawBins(); };
+
+$("bstart").onclick = async () => {
+  const question = $("bq").value.trim();
+  if (!question) { $("bstat").textContent = "질문을 입력하세요."; return; }
+  for (const r of bresults) URL.revokeObjectURL(r.thumb);
+  bresults = []; stopFlag = false; drawBins();
+  $("bstart").disabled = true; $("bstop").disabled = false;
+  const t0 = performance.now(); let modelMs = 0;
+  for (let i = 0; i < bfiles.length && !stopFlag; i++) {
+    const f = bfiles[i], r = { name: f.name, thumb: URL.createObjectURL(f), p: null };
+    try {
+      const res = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: "", images: [await readDataURL(f)], questions: { q: { type: "noul", instructions: question } } }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (data.answers.q.error) throw new Error(data.answers.q.message);
+      r.p = data.answers.q.noul; modelMs += data.ms;
+    } catch (e) { r.error = e.message; }
+    bresults.push(r); drawBins();
+    const done = i + 1, wall = (performance.now() - t0) / 1000;
+    $("bstat").textContent = `${done} / ${bfiles.length}장 · 경과 ${wall.toFixed(1)}초 · 장당 평균 ${(wall / done).toFixed(3)}초 (모델 ${(modelMs / 1000 / done).toFixed(3)}초)`;
+  }
+  if (stopFlag) $("bstat").textContent += " · 중지됨";
+  $("bstart").disabled = false; $("bstop").disabled = true;
+};
+$("bstop").onclick = () => { stopFlag = true; };
+
+// Works from anywhere on the page, including inside the text boxes; ignored while a run is in progress.
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); if (!$("run").disabled) run(); }
+});
+</script>
+</body>
+</html>

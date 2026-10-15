@@ -1,0 +1,1 @@
+{"state":"결제했는데 회차가 안 열려요. 코인은 빠져나갔어요.","questions":{"route":{"type":"choice","instructions":"어느 팀이 처리해야 하나요?","criteria":{"payment":"결제·코인·환불","content":"작품·회차 오류","account":"로그인·계정"}}}}
