@@ -14,3 +14,6 @@ data/
 
 # Internal working notes (PC paths, network info, internal discussion)
 CLAUDE.md
+
+# Test results: third-party image names, NSFW labels, exposure notes. GUI has no login, never publish
+docs/test-results/
